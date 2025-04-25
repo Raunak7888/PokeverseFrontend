@@ -24,3 +24,11 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.shadow-of-text{
+  text-shadow: 3px 3px 20px #000;
+}
+
+.shadow{
+  box-shadow: 8px 3px 20px black;
+}

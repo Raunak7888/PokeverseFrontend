@@ -1,0 +1,29 @@
+"use client";
+import React from "react";
+
+interface PokeButtonProps {
+  buttonName: string;
+}
+
+export default function PokeButton({ buttonName }: PokeButtonProps) {
+  return (
+    <div className="flex justify-center items-center gap-0">
+      <div className="flex justify-center items-center gap-0 flex-col m-0 p-0 border-0">
+        <div className="h-[20px] w-[180px] rounded-t-4xl flex  border-black border-2 justify-center items-center bg-[#EE4035] text-white font-extrabold font-[Piedra]"></div>
+        <div className="bg-[#1e1e1e] h-[10px] w-[210px] text-white z-50 flex justify-center items-center font-extrabold font-[Piedra]">
+          <div
+            className="text-2xl z-40 tracking-widest"
+            style={{
+              textShadow: `-2px -2px 0 #000, 2px -2px 0 #000,
+                 -2px 2px 0 #000, 2px 2px 0 #000`,
+              color: "white",
+            }}
+          >
+            {buttonName}
+          </div>
+        </div>
+        <div className="bg-white h-[20px] w-[180px] rounded-b-4xl flex border-black border-2 justify-center items-center text-white font-extrabold font-[Piedra]"></div>
+      </div>
+    </div>
+  );
+}
