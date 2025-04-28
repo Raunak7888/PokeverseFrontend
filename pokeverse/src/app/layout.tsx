@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body>
-        {/* Your layout content */}
+       
         {children}
       </body>
     </html>

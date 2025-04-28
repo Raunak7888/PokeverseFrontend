@@ -55,8 +55,7 @@ const Navbar = () => {
             alt="Profile"
             width={40}
             height={40}
-            className="m-0 p-0 border-[1px] border-white h-[40px] rounded-[50%] object-contain
- cursor-pointer"
+            className="m-0 p-0 border-[1px] border-white h-[40px] rounded-[50%] object-cover cursor-pointer"
             onClick={handleImageClick}
           />
         </div>

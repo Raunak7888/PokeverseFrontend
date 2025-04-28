@@ -6,8 +6,16 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'static.wikia.nocookie.net',
       },
+      {
+        protocol: 'https',
+        hostname: 'raw.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
     ],
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
