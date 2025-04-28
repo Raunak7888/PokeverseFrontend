@@ -4,7 +4,7 @@ import React from "react";
 const CompletedResult = () => {
   return (
     <div className="flex flex-col items-center justify-center bg-black text-white p-4 min-h-screen shadow-lg">
-      <div className="flex flex-col items-center space-y-6 w-full max-w-4xl bg-[#423] p-6 md:p-10 rounded-[5vh] shadow-lg">
+      <div className="flex flex-col items-center space-y-6 w-full max-w-4xl bg-[#1e1e1e] p-6 md:p-10 rounded-[5vh] shadow-lg">
         <div className="text-white text-3xl sm:text-4xl md:text-5xl lg:text-6xl underline font-[Piedra] tracking-widest mt-10 md:mt-14 text-center">
           Hey you Completed the Quiz
         </div>
