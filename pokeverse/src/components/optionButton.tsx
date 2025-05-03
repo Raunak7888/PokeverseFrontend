@@ -1,10 +1,11 @@
+"use client";
 import React from "react";
 import Image from "next/image";
 
 interface OptionButtonProps {
   optionKey: string;
   text: string;
-  imageSrc?: string; // optional image URL
+  imageSrc?: string;
   selectedOption: string | null;
   onOptionClick: (option: string) => void;
 }
@@ -21,11 +22,12 @@ const OptionButton: React.FC<OptionButtonProps> = ({
   return (
     <button
       onClick={() => onOptionClick(optionKey)}
-      className={`flex items-center space-x-2 bg-[#3c3c3c] px-4 py-3 rounded-full w-full
-        ${isSelected ? "ring-7 ring-yellow-400" : ""}`}
+      className={`flex items-center space-x-2 bg-[#3c3c3c] px-4 py-3 rounded-full w-full ${
+        isSelected ? "ring-7 ring-yellow-400" : ""
+      }`}
     >
       {imageSrc ? (
-        <div className="relative w-10 h-10">
+        <div className="relative w-10 h-10 sm:w-12 sm:h-12">
           <Image
             src={imageSrc}
             alt={text}

@@ -1,17 +1,26 @@
 "use client";
-import Navbar from "@/components/Navbar";
 import PokeButton from "@/components/PokemonButton";
+import { useRouter } from "next/navigation";
+import { useCallback } from "react";
 
 export default function Quiz() {
-  const CreateButton = "Create";
-  const StartButton = "Start";
+  const router = useRouter();
 
   const inputcss =
-    "bg-[#2e2e2e] h-[45px] w-[180px] rounded-4xl flex justify-center items-center m-[10px]  shadow";
+    "bg-[#2e2e2e] h-[45px] w-[180px] rounded-4xl flex justify-center items-center m-[10px] shadow";
+
+  const handleMultiplayerCreate = useCallback(() => {
+    router.push("quiz/multiplayer/create");
+  }, [router]);
+
+  const handleMultiplayerJoin = useCallback(() => {
+    router.push("quiz/multiplayer/join");
+  }, [router]);
 
   return (
     <div className="h-full flex flex-col justify-center items-center gap-[50px]">
       <div className="text-5xl font-bold font-[Piedra]">PokeQuiz</div>
+      
       <div className="flex flex-row items-center gap-[100px]">
         {/* Single Player Card */}
         <div className="bg-[#1e1e1e] h-[350px] w-[300px] border-0 rounded-[40px] flex flex-col justify-evenly items-center">
@@ -20,8 +29,7 @@ export default function Quiz() {
           </div>
 
           {/* Form */}
-          <form className="flex flex-col items-center font-[Mogra] ">
-            {/* Difficulty Dropdown */}
+          <form className="flex flex-col items-center font-[Mogra]">
             <div className={inputcss}>
               <select
                 defaultValue="none"
@@ -36,7 +44,6 @@ export default function Quiz() {
               </select>
             </div>
 
-            {/* Region Dropdown */}
             <div className={inputcss}>
               <select
                 id="region"
@@ -58,7 +65,6 @@ export default function Quiz() {
               </select>
             </div>
 
-            {/* Rounds Dropdown */}
             <div className={inputcss}>
               <select
                 defaultValue="none"
@@ -74,9 +80,8 @@ export default function Quiz() {
               </select>
             </div>
 
-            {/* Start Button */}
             <div className="mt-2">
-              <PokeButton buttonName={StartButton} />
+              <PokeButton buttonName="Start" />
             </div>
           </form>
         </div>
@@ -87,8 +92,18 @@ export default function Quiz() {
             Play With Friends
           </div>
           <div className="flex flex-col justify-evenly items-center relative bottom-[40px]">
-            <button className={inputcss + " font-[Mogra]"}>Create</button>
-            <button className={inputcss + " font-[Mogra]"}>Join</button>
+            <button
+              className={inputcss + " font-[Mogra]"}
+              onClick={handleMultiplayerCreate}
+            >
+              Create
+            </button>
+            <button
+              className={inputcss + " font-[Mogra]"}
+              onClick={handleMultiplayerJoin}
+            >
+              Join
+            </button>
           </div>
         </div>
       </div>

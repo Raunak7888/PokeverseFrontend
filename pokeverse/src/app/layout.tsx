@@ -27,6 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           href="https://fonts.googleapis.com/css2?family=Mogra&display=swap"
           rel="stylesheet"
         />
+        <title>PokeVerse</title>
       </head>
       <body>
        

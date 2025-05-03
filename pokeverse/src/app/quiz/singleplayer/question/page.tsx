@@ -79,7 +79,7 @@ const MyPage = () => {
               questionText={questionData.questionText}
               optionsText={questionData.optionsText}
               onNext={handleNext}
-              onSelect={(option) => setSelectedOption(option)}
+              onSelect={(option: string) => setSelectedOption(option)}
             />
           </motion.div>
         )}

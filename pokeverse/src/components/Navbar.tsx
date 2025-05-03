@@ -3,20 +3,20 @@
 import Link from "next/link";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
+import Cookies from "js-cookie";
 
 const Navbar = () => {
   const [userData, setUserData] = useState<any>(null);
   const [showDialog, setShowDialog] = useState(false);
 
   useEffect(() => {
-    // Get user data from localStorage
-    const rawData = localStorage.getItem("user");
+    const rawData = Cookies.get("user");
     if (rawData) {
       try {
         const parsedData = JSON.parse(rawData);
         setUserData(parsedData);
       } catch (err) {
-        console.error("Invalid JSON in localStorage:", err);
+        console.error("Invalid JSON in cookie:", err);
       }
     }
   }, []);
@@ -64,14 +64,14 @@ const Navbar = () => {
       {/* Dialog Box */}
       {showDialog && userData && (
         <div className="flex rounded-b-2xl justify-end fixed end-5">
-          <div className="bg-[#1b1b1b]  rounded-b-4xl shadow-lg p-6  relative h-[150px] w-[350px]">
+          <div className="bg-[#1b1b1b] rounded-b-4xl shadow-lg p-6 relative h-[150px] w-[350px]">
             <button
               onClick={handleClose}
               className="absolute top-2 right-3 text-gray-600 hover:text-red-500 text-xl font-bold"
             >
               &times;
             </button>
-            <div className="flex flex-row items-center space-y-4 ">
+            <div className="flex flex-row items-center space-y-4">
               <div className="bg-white rounded-[50%] h-[110px] w-[110px]">
                 <Image
                   src={userData?.profilePicUrl || profilePictureUrl}
@@ -81,7 +81,7 @@ const Navbar = () => {
                   className="rounded-[50%] border-[2px] h-[110px] w-[110px] border-gray-300 object-contain"
                 />
               </div>
-              <div className="flex flex-col items-center space-y-4 ">
+              <div className="flex flex-col items-center space-y-4">
                 <div className="text-lg text-white font-bold">
                   {userData.name}
                 </div>

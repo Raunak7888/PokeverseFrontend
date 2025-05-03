@@ -32,3 +32,46 @@ body {
 .shadow{
   box-shadow: 8px 3px 20px black;
 }
+
+.leaderboard-scroll {
+  scrollbar-width: thin;               /* For Firefox */
+  scrollbar-color: white #1e1e1e;      /* For Firefox */
+}
+
+.leaderboard-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.leaderboard-scroll::-webkit-scrollbar-track {
+  background: #1e1e1e;
+  border-radius: 9999px;
+}
+
+.leaderboard-scroll::-webkit-scrollbar-thumb {
+  background-color: white;
+  border-radius: 9999px;
+}
+
+.leaderboard-scroll::-webkit-scrollbar-button {
+  height: 0;
+  width: 0;
+  display: none; /* Hide up/down buttons */
+}
+@keyframes sparkle {
+  0% {
+    opacity: 0;
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.5) translateY(-10px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5) translateY(-20px);
+  }
+}
+
+.animate-sparkle {
+  animation: sparkle 1.2s ease-in-out infinite;
+}
