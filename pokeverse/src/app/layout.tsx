@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
-import "./globals.css"; // Import global styles if you have them
+import "./globals.css";
+import BackButton from "@/components/backbutton";
 
 export const metadata = {
   title: "PokeVerse",
@@ -10,7 +11,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
-        {/* Add the Google Fonts links here */}
+        {/* Google Fonts */}
         <link
           href="https://fonts.googleapis.com/css2?family=Piedra&display=swap"
           rel="stylesheet"
@@ -30,7 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <title>PokeVerse</title>
       </head>
       <body>
-       
+        <BackButton /> {/* 👈 Always visible back button */}
         {children}
       </body>
     </html>

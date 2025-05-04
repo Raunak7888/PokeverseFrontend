@@ -3,11 +3,11 @@ import React from "react";
 import Image from "next/image";
 
 interface OptionButtonProps {
-  optionKey: string;
+  optionKey: string; // Can be used for labeling or debugging
   text: string;
   imageSrc?: string;
   selectedOption: string | null;
-  onOptionClick: (option: string) => void;
+  onOptionClick: (optionText: string) => void;
 }
 
 const OptionButton: React.FC<OptionButtonProps> = ({
@@ -17,13 +17,13 @@ const OptionButton: React.FC<OptionButtonProps> = ({
   selectedOption,
   onOptionClick,
 }) => {
-  const isSelected = selectedOption === optionKey;
+  const isSelected = selectedOption === text;
 
   return (
     <button
-      onClick={() => onOptionClick(optionKey)}
-      className={`flex items-center space-x-2 bg-[#3c3c3c] px-4 py-3 rounded-full w-full ${
-        isSelected ? "ring-7 ring-yellow-400" : ""
+      onClick={() => onOptionClick(text)} // ✅ pass option *text*
+      className={`flex items-center space-x-2 bg-[#3c3c3c] px-4 py-3 rounded-full w-full transition-all duration-200 ${
+        isSelected ? "ring-4 ring-yellow-400" : ""
       }`}
     >
       {imageSrc ? (
@@ -38,7 +38,7 @@ const OptionButton: React.FC<OptionButtonProps> = ({
           />
         </div>
       ) : (
-        <span className="text-2xl">❓</span> // fallback emoji if no imageSrc
+        <span className="text-2xl">❓</span>
       )}
       <div className="flex items-center space-x-2 bg-[#575757] p-3 rounded-full w-full">
         <span className="font-medium">{text}</span>

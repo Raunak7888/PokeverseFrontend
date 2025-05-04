@@ -1,23 +1,26 @@
+import PokeButton from "@/components/PokemonButton";
 import React from "react";
-import PokeButton from "./PokemonButton";
 
-export interface ResultProps {
+interface ResultProps {
   isCorrect: boolean;
+  onNext: () => void;
 }
 
-const Result: React.FC<ResultProps> = ({ isCorrect }) => {
+const Result: React.FC<ResultProps> = ({ isCorrect, onNext }) => {
   return (
-    <div className="flex flex-col items-center justify-center bg-black text-white p-4 rounded-[5vh] shadow-lg">
-      <div className="flex flex-col items-center space-y-4 w-[70vw] bg-[#1e1e1e] p-6 rounded-[5vh] shadow-lg">
-        <div className="text-[#2CC30A] text-7xl font-[Piedra] tracking-widest mt-14">
-          Correct Answer!!!
+    <div className="flex flex-col items-center justify-center bg-black text-white p-4 min-h-screen">
+      <div className="flex flex-col items-center space-y-6 w-full max-w-2xl bg-[#1e1e1e] p-6 md:p-10 rounded-[4vh] shadow-lg">
+        <div className="text-white text-5xl font-[Piedra] tracking-wide text-center">
+          {isCorrect ? "Correct!" : "Oops, that's Incorrect"}
         </div>
-        <div className="text-[#2CC30A] text-7xl font-[Piedra] tracking-widest">
-          Well Done!!!
+
+        <div className="text-lg md:text-xl font-[Mogra] text-center">
+          {isCorrect
+            ? "Great job, you got the answer right!"
+            : "Don't worry, try the next one!"}
         </div>
-        <div className="mt-14">
-          <PokeButton buttonName="Next" />
-        </div>
+
+        <PokeButton buttonName="Next" onClick={onNext} />
       </div>
     </div>
   );

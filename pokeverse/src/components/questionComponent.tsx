@@ -1,23 +1,27 @@
 import React, { useState } from "react";
-import { useClock } from "@/components/GameClockContext";
-
 import Pokeball from "@/components/pokeball";
 import OptionButton from "@/components/optionButton";
 import PokeButton from "@/components/PokemonButton";
+import { useClock } from "@/components/GameClockContext";
 
 const QuestionComponent = ({
   questionNumber,
   questionText,
   optionsText,
   onSelect,
-  onSubmit, // ✅ NEW
-  duration,
+  onSubmit,
+  duration = 0,
+  isTimebound = false,
 }: any) => {
-  const { elapsed } = useClock();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
+  // ✅ Only call useClock if timebound
+  const clockData = isTimebound ? useClock() : null;
+  const elapsed = clockData?.elapsed ?? 0;
+
   const remaining = Math.max(0, duration - elapsed);
-  const percentage = (remaining / duration) * 100;
+  const percentage =
+    isTimebound && duration > 0 ? (remaining / duration) * 100 : 100;
 
   const getClockColor = () => {
     if (percentage > 66) return "#ffffff";
@@ -25,24 +29,27 @@ const QuestionComponent = ({
     return "#aaaaaa";
   };
 
-  const handleOptionClick = (option: string) => {
-    const newSelection = selectedOption === option ? null : option;
+  const handleOptionClick = (optionText: string) => {
+    const newSelection = selectedOption === optionText ? null : optionText;
     setSelectedOption(newSelection);
   };
 
+
   const handleSubmit = () => {
     if (selectedOption) {
-      onSelect(selectedOption); 
-      onSubmit?.(); // ✅ Call parent only if something is selected
+      onSelect(selectedOption);
+      onSubmit?.();
     }
   };
 
   return (
     <div className="relative flex items-center ml-9 justify-center p-[5px]">
       <div
-        className="rounded-[5vh] w-[71vw] h-[66vh] flex items-center justify-center bg-[#1e1e1e]"
+        className="rounded-[5vh] w-[71vw] h-[66vh] flex items-center justify-center"
         style={{
-          background: `conic-gradient(${getClockColor()} ${percentage}%, transparent ${percentage}%)`,
+          background: isTimebound
+            ? `conic-gradient(${getClockColor()} ${percentage}%, transparent ${percentage}%)`
+            : "none",
         }}
       >
         <div className="bg-black rounded-[5vh]">
@@ -62,30 +69,33 @@ const QuestionComponent = ({
               </div>
 
               <div className="grid grid-cols-2 gap-4 mt-8 w-full">
-                {(["A", "B", "C", "D"] as const).map((key) => (
-                  <OptionButton
-                    key={key}
-                    optionKey={key}
-                    text={optionsText[key]}
-                    imageSrc={
-                      key === "A"
-                        ? "/croped-pikachu.png"
-                        : key === "B"
-                        ? "/croped-charmander.png"
-                        : key === "C"
-                        ? "/croped-squirtle.png"
-                        : "/croped-bulbasaur.png"
-                    }
-                    selectedOption={selectedOption}
-                    onOptionClick={handleOptionClick}
-                  />
-                ))}
+                {(["A", "B", "C", "D"] as const).map((key) => {
+                  const optionText = optionsText[key];
+                  return (
+                    <OptionButton
+                      key={key}
+                      optionKey={key}
+                      text={optionText}
+                      imageSrc={
+                        key === "A"
+                          ? "/croped-pikachu.png"
+                          : key === "B"
+                          ? "/croped-charmander.png"
+                          : key === "C"
+                          ? "/croped-squirtle.png"
+                          : "/croped-bulbasaur.png"
+                      }
+                      selectedOption={selectedOption}
+                      onOptionClick={() => handleOptionClick(optionText)} // ✅ Pass text, not key
+                    />
+                  );
+                })}
               </div>
 
               <PokeButton
                 buttonName="Submit"
                 onClick={handleSubmit}
-                disabled={!selectedOption} // ✅ Disable if no option is selected
+                disabled={!selectedOption}
               />
             </div>
           </div>

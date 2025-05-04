@@ -95,6 +95,8 @@ const Question = () => {
                   selectedOption={selectedOption}
                   duration={duration}
                   isClock={true}
+                  isTimebound={true} // Pass the isTimebound prop to QuestionComponent
+                  startClock={startClock} // Pass the startClock state to QuestionComponent
                 />
               </motion.div>
             )}
