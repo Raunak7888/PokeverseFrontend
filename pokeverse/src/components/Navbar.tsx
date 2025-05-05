@@ -63,7 +63,7 @@ const Navbar = () => {
 
       {/* Dialog Box */}
       {showDialog && userData && (
-        <div className="flex rounded-b-2xl justify-end fixed end-5">
+        <div className="flex rounded-b-2xl justify-end fixed end-0">
           <div className="bg-[#1b1b1b] rounded-b-4xl shadow-lg p-6 relative h-[150px] w-[350px]">
             <button
               onClick={handleClose}

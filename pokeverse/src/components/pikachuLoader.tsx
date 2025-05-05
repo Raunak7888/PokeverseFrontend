@@ -18,6 +18,7 @@ const PikachuLoader = () => {
         width={100}
         height={100}
         className="object-contain h-[91vh] w-[100vw] backdrop-brightness-10 absolute top-[9vh] z-99999 left-0 "
+        unoptimized={true}
       />
     </div>
   );
