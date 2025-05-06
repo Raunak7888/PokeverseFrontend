@@ -21,6 +21,7 @@ const Create = () => {
 
   useEffect(() => {
     const userCookie = Cookies.get("user");
+    localStorage.clear();
     if (userCookie) {
       try {
         const user = JSON.parse(decodeURIComponent(userCookie));
@@ -81,6 +82,15 @@ const Create = () => {
         return;
       }
 
+      localStorage.setItem("roomId", roomData.id.toString());
+      const dataResponse = await fetch(`http://localhost:8083/api/rooms/${roomData.id}/${userId}`);
+      if (!dataResponse.ok) throw new Error("Failed to fetch room data");
+
+      const jsonData = await dataResponse.json();
+
+      // Save room and players in localStorage
+      localStorage.setItem("room", JSON.stringify(jsonData.room));
+      localStorage.setItem("players", JSON.stringify(jsonData.players));
       router.push("/quiz/multiplayer/lobby");
     } catch (err: any) {
       console.error("Create/join error:", err);

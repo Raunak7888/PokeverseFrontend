@@ -1,7 +1,9 @@
 "use client";
 
-import PokeButton from "@/components/PokemonButton";
 import React, { useState, useRef, useEffect } from "react";
+import Cookies from "js-cookie";
+import PokeButton from "@/components/PokemonButton";
+import { useRouter } from "next/navigation";
 
 const CODE_LENGTH = 6;
 
@@ -10,14 +12,25 @@ const Join = () => {
     Array(CODE_LENGTH).fill("")
   );
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const [userData, setUserData] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const user = Cookies.get("user");
+    if (user) {
+      const parsed = JSON.parse(user);
+      setUserData({ userId: parsed.id, name: parsed.name });
+    }
+  }, []);
 
   const handleChange = (value: string, index: number) => {
     if (!/^[0-9a-zA-Z]?$/.test(value)) return;
-
     const updatedCode = [...roomCode];
     updatedCode[index] = value.toUpperCase();
     setRoomCode(updatedCode);
-
     if (value && index < CODE_LENGTH - 1) {
       inputsRef.current[index + 1]?.focus();
     }
@@ -53,6 +66,49 @@ const Join = () => {
     inputsRef.current[pasted.length - 1]?.focus();
   };
 
+  const handleJoin = async () => {
+    if (!userData) return alert("User data not found in cookies.");
+
+    const roomId = roomCode.join("");
+    if (roomId.length !== CODE_LENGTH) return alert("Enter a valid room code.");
+
+    const id = parseInt(roomId.replace(/^0+/, "")); // remove leading zeros
+    localStorage.setItem("roomId", id.toString());
+
+    try {
+      // Step 1: Join the room
+      const joinResponse = await fetch(
+        `http://localhost:8083/api/rooms/join?roomId=${id}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: parseInt(userData.userId),
+            name: userData.name,
+          }),
+        }
+      );
+
+      if (!joinResponse.ok) throw new Error("Join request failed");
+
+      // Step 2: Fetch room and player data
+      const dataResponse = await fetch(`http://localhost:8083/api/rooms/${id}/${userData.userId}`);
+      if (!dataResponse.ok) throw new Error("Failed to fetch room data");
+
+      const jsonData = await dataResponse.json();
+
+      // Save room and players in localStorage
+      localStorage.setItem("room", JSON.stringify(jsonData.room));
+      localStorage.setItem("players", JSON.stringify(jsonData.players));
+
+      // Navigate to lobby
+      router.push("/quiz/multiplayer/lobby");
+    } catch (error) {
+      console.error("Error joining room:", error);
+      alert("Failed to join the room. Please try again.");
+    }
+  };
+
   return (
     <div className="flex items-center justify-center flex-col h-full text-white font-[Piedra] tracking-widest">
       <h1 className="text-4xl font-bold mb-10">Join Room</h1>
@@ -81,7 +137,9 @@ const Join = () => {
           ))}
         </div>
 
-        <PokeButton buttonName="Join" />
+        <div className="w-full" onClick={handleJoin}>
+          <PokeButton buttonName="Join" />
+        </div>
       </div>
     </div>
   );
