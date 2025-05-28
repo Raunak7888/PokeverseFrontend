@@ -7,6 +7,7 @@ import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import ChatComponent from "@/components/chatcomponent";
 import { MessagesSquare } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type Player = {
   userId: string;
@@ -33,6 +34,7 @@ const Lobby = () => {
   const [userId, setUserId] = useState("");
   const [username, setUsername] = useState("");
   const [showChat, setShowChat] = useState(false);
+  const router = useRouter();
 
   const parseLocalStorage = (key: string) => {
     try {
@@ -131,8 +133,7 @@ const Lobby = () => {
       destination: `/app/game/${room.id}/${room.hostId}`,
       body: JSON.stringify({ action: "initiate" }), // Example payload
     });
-
-    console.log("Game start message sent.");
+    router.push("/quiz/multiplayer/question");
   };
 
   useEffect(() => {

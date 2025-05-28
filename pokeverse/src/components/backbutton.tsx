@@ -7,6 +7,7 @@ export default function BackButton() {
   const pathname = usePathname();
 
   if (pathname === "/") return null;
+  if (pathname === "/quiz/multiplayer/question") return null;
 
   return (
     <button
