@@ -8,6 +8,7 @@ import SockJS from "sockjs-client";
 import ChatComponent from "@/components/chatcomponent";
 import { MessagesSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 type Player = {
   userId: string;
@@ -40,9 +41,41 @@ const Lobby = () => {
     try {
       const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : null;
-    } catch {
+    } catch (e) {
+      console.error(`Error parsing localStorage item "${key}":`, e);
       return null;
     }
+  };
+
+  const parseUserCookie = () => {
+    try {
+      const userCookie = Cookies.get("user");
+      if (userCookie) {
+        const jsonMatch = userCookie.match(/\{.*\}/);
+        if (jsonMatch && jsonMatch[0]) {
+          const decodedJsonString = decodeURIComponent(jsonMatch[0]);
+          const userData = JSON.parse(decodedJsonString);
+          console.log("Parsed user data from cookie:", userData);
+          return {
+            id: userData.id.toString(),
+            name: userData.name,
+            profilePicUrl: userData.profilePicUrl || "",
+          };
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing user cookie:", e);
+    }
+    return null;
+  };
+
+
+  const normalizePlayers = (playersFromServer: any[]): Player[] => {
+    return playersFromServer.map((p) => ({
+      userId: p.userId.toString(),
+      name: p.name,
+      profilePicUrl: p.profilePicUrl || "",
+    }));
   };
 
   const enrichPlayers = async (playerList: Player[]): Promise<Player[]> => {
@@ -54,13 +87,17 @@ const Lobby = () => {
           const res = await fetch(
             `http://localhost:8082/auth/user/profile/pic/${player.userId}`
           );
+          if (!res.ok) {
+              console.warn(`Failed to fetch pic for ${player.name}: Status ${res.status}`);
+              return { ...player, profilePicUrl: "" };
+          }
           const data = await res.json();
           return {
             ...player,
             profilePicUrl: data?.profilePicUrl?.trim() || "",
           };
-        } catch {
-          console.error(`Failed to fetch pic for ${player.name}`);
+        } catch (e) {
+          console.error(`Failed to fetch pic for ${player.name}:`, e);
           return { ...player, profilePicUrl: "" };
         }
       })
@@ -76,106 +113,205 @@ const Lobby = () => {
       const data = await res.json();
 
       const { room, players } = data;
-      localStorage.setItem("room", JSON.stringify(room));
-      localStorage.setItem("players", JSON.stringify(players));
 
-      return { room, players };
+      const normalizedPlayers = normalizePlayers(players || []);
+
+      localStorage.setItem("room", JSON.stringify(room));
+      localStorage.setItem("players", JSON.stringify(normalizedPlayers));
+      localStorage.setItem("roomId", room.id.toString());
+
+      return { room, players: normalizedPlayers };
     } catch (error) {
       console.error("Error fetching room from server:", error);
       return null;
     }
   };
 
-  const subscribeToWebSockets = useCallback((id: string) => {
-    const socket = new SockJS("http://localhost:8083/ws");
-    const formattedId = id.toString().replaceAll("0", "");
-    const destination = `/topic/rooms/${formattedId}/game`;
+  const subscribeToWebSockets = useCallback(
+    (id: string) => {
+      console.log("Attempting to connect to WebSocket...");
+      const socket = new SockJS("http://localhost:8083/ws");
+      const formattedId = id.toString().replaceAll("0", "");
+      const destination = `/topic/rooms/${formattedId}/game`;
 
-    const client = new Client({
-      webSocketFactory: () => socket,
-      reconnectDelay: 5000,
-      onConnect: () => {
-        console.log("Connected to WebSocket");
-        client.subscribe(destination, (message) => {
-          try {
-            // Attempt to parse the message body as JSON
-            const parsedMessage = JSON.parse(message.body);
-            console.log("Game message:", parsedMessage);
-          } catch (e) {
-            // If it's not JSON, handle non-JSON messages (e.g., "Game started")
-            console.log("Non-JSON message received:", message.body);
-            if (message.body === "Game started") {
-              // Handle the 'Game started' scenario here
-              console.log("Game has started.");
+      const client = new Client({
+        webSocketFactory: () => socket,
+        reconnectDelay: 5000,
+        onConnect: () => {
+          console.log("Connected to WebSocket");
+          client.subscribe(destination, (message) => {
+            try {
+              const parsedMessage = JSON.parse(message.body);
+              console.log("Game message:", parsedMessage);
+
+              // --- MODIFICATION STARTS HERE ---
+              if (parsedMessage?.userId && parsedMessage?.name) {
+                // The new player data is directly in parsedMessage, not parsedMessage.player
+                const newPlayer: Player = {
+                    userId: parsedMessage.userId.toString(), // Access userId directly
+                    name: parsedMessage.name,               // Access name directly
+                    profilePicUrl: parsedMessage.profilePicUrl || "", // Add profilePicUrl if it exists in the message, or default
+                };
+                
+                setPlayers((currentPlayers) => {
+                  const isDuplicate = currentPlayers.some(
+                    (player) => player.userId === newPlayer.userId
+                  );
+                  if (!isDuplicate) {
+                    const updatedPlayers = [...currentPlayers, newPlayer];
+                    localStorage.setItem(
+                      "players",
+                      JSON.stringify(updatedPlayers)
+                    );
+                    console.log("Added new player:", newPlayer.name);
+                    return updatedPlayers;
+                  }
+                  console.log("Player already exists:", newPlayer.name);
+                  return currentPlayers;
+                });
+              } else if (parsedMessage && parsedMessage.type === "GAME_STARTED") {
+                console.log("Game has started.");
+                router.push(`/quiz/multiplayer/question`);
+              }
+              // --- MODIFICATION ENDS HERE ---
+            } catch (e) {
+              console.error("Error parsing WebSocket message or handling it:", e);
+              if (message.body === "Game started") {
+                console.log("Game has started.");
+                router.push(`/quiz/multiplayer/question`);
+              }
             }
-          }
-        });
-      },
-      onStompError: (frame) => {
-        console.error("WebSocket Error:", frame.headers["message"]);
-      },
-    });
+          });
+        },
+        onStompError: (frame) => {
+          console.error("WebSocket Error:", frame.headers["message"]);
+          console.error("STOMP Frame:", frame);
+        },
+        onDisconnect: (frame) => {
+            console.log("Disconnected from WebSocket", frame);
+        }
+      });
 
-    client.activate();
-    setStompClient(client);
-  }, []);
+      client.activate();
+      setStompClient(client);
 
-  const handleStartGame = () => {
-    if (!stompClient || !stompClient.connected || !room) return;
-
-    stompClient.publish({
-      destination: `/app/start/${room.id}`,
-      body: JSON.stringify({ roomId: room.id, action: "start" }), // Example payload
-    });
-
-    // Optionally, trigger the question sending as well
-    stompClient.publish({
-      destination: `/app/game/${room.id}/${room.hostId}`,
-      body: JSON.stringify({ action: "initiate" }), // Example payload
-    });
-    router.push("/quiz/multiplayer/question");
-  };
+      return () => {
+        if (client.connected) {
+          client.deactivate();
+          console.log("WebSocket client deactivated on unmount.");
+        }
+      };
+    },
+    [router]
+  );
 
   useEffect(() => {
+    console.log("First useEffect: Loading initial data...");
+
+    const user = parseUserCookie();
+    if (user) {
+      setUserId(user.id);
+      setUsername(user.name);
+      console.log("Loaded userId from cookie:", user.id);
+      console.log("Loaded username from cookie:", user.name);
+    } else {
+      console.warn("User cookie not found or could not be parsed.");
+    }
+
+    const rooming = localStorage.getItem("room");
+    const playerslocal = localStorage.getItem("players");
+    if (rooming) {
+      setRoom(JSON.parse(rooming));
+      console.log("Loaded room from localStorage:", JSON.parse(rooming));
+    }
+    if (playerslocal) {
+      setPlayers(JSON.parse(playerslocal));
+      console.log("Loaded players from localStorage:", JSON.parse(playerslocal));
+    }
+    const idOfRoom = localStorage.getItem("roomId");
+    if (idOfRoom) {
+      setRoomId(idOfRoom.toString().padStart(6, "0"));
+      console.log("Loaded roomId from localStorage:", idOfRoom);
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log("Second useEffect triggered. Current userId:", userId);
+    if (!userId) {
+      console.log("userId is not set yet. Skipping initLobby.");
+      return;
+    }
+
     const initLobby = async () => {
+      console.log("initLobby started with userId:", userId);
       let roomData = parseLocalStorage("room");
       let playersData: Player[] = parseLocalStorage("players");
       const fallbackRoomId = parseLocalStorage("roomId");
 
       if (!roomData && fallbackRoomId) {
+        console.log("No room data in state, fetching from server with roomId:", fallbackRoomId);
         const fresh = await fetchRoomFromServer(fallbackRoomId);
-        if (!fresh) return;
+        if (!fresh) {
+          console.error("Failed to fetch room from server.");
+          return;
+        }
         roomData = fresh.room;
         playersData = fresh.players;
       }
 
-      if (!roomData || !roomData.id) return;
+      if (!roomData || !roomData.id) {
+        console.warn("No room data or room ID available after attempts. Cannot proceed with lobby initialization.");
+        return;
+      }
 
       const formattedId = roomData.id.toString().padStart(6, "0");
       setRoomId(formattedId);
       setRoom(roomData);
+      setPlayers(playersData || []);
+      localStorage.setItem("players", JSON.stringify(playersData || []));
 
+      console.log("Calling subscribeToWebSockets with ID:", formattedId);
+      subscribeToWebSockets(formattedId);
+
+      console.log("Proceeding to enrich player data...");
       const allPicsPresent =
         playersData?.length &&
         playersData.every((p) => p.profilePicUrl?.trim());
 
-      const finalPlayers = allPicsPresent
-        ? playersData
-        : await enrichPlayers(playersData || []);
-
-      setPlayers(finalPlayers);
-      localStorage.setItem("players", JSON.stringify(finalPlayers));
-
-      subscribeToWebSockets(formattedId);
+      if (!allPicsPresent && playersData) {
+        try {
+          const enriched = await enrichPlayers(playersData);
+          setPlayers(enriched);
+          localStorage.setItem("players", JSON.stringify(enriched));
+        } catch (e) {
+          console.error("Error enriching players after WebSocket connection:", e);
+        }
+      }
     };
 
-    const uid = localStorage.getItem("userId");
-    const uname = localStorage.getItem("username");
-    if (uid) setUserId(uid);
-    if (uname) setUsername(uname);
-
     initLobby();
-  }, [subscribeToWebSockets]);
+  }, [userId, subscribeToWebSockets]);
+
+  const handleStartGame = () => {
+    if (!stompClient || !stompClient.connected || !room) {
+      console.warn("Cannot start game: STOMP client not connected or room not available.");
+      return;
+    }
+
+    console.log(`Sending start game message to /app/start/${room.id}`);
+    stompClient.publish({
+      destination: `/app/start/${room.id}`,
+      body: JSON.stringify({ roomId: room.id, action: "start" }),
+    });
+
+    setTimeout(() => {
+      console.log(`Sending initiate game message to /app/game/${room.id}/${room.hostId}`);
+      stompClient.publish({
+        destination: `/app/game/${room.id}/${room.hostId}`,
+        body: JSON.stringify({ action: "initiate" }),
+      });
+    }, 300);
+  };
 
   const padded = useCallback(
     (n?: number) => (n !== undefined ? n.toString().padStart(2, "0") : "00"),
@@ -188,9 +324,8 @@ const Lobby = () => {
       <div className="mb-4 text-xl">Room Code: {roomId}</div>
 
       <div className="flex gap-8">
-        {/* Player List */}
-        <div className="bg-[#1e1e1e] px-10 py-8 rounded-3xl shadow-lg w-[400px] flex flex-col  items-center gap-6 tracking-widest">
-          <div className="text-2xl font-bold flex items-center justify-center flex-col  w-full">
+        <div className="bg-[#1e1e1e] px-10 py-8 rounded-3xl shadow-lg w-[400px] flex flex-col  items-center gap-6 tracking-widest">
+          <div className="text-2xl font-bold flex items-center justify-center flex-col  w-full">
             <div>Waiting Lobby</div>
             <div className="text-sm w-full text-right">{`${padded(
               players.length
@@ -252,11 +387,10 @@ const Lobby = () => {
           <PokeButton buttonName="Start" onClick={handleStartGame} />
         </div>
 
-        {/* Chat Toggle and Box */}
         <div className="relative">
           <button
             onClick={() => setShowChat((prev) => !prev)}
-            className={`absolute top-2  w-12 h-12 bg-[#1e1e1e] hover:bg-[#2a2a2a] p-3 rounded-full shadow-lg transition-all duration-300 ${
+            className={`absolute top-2  w-12 h-12 bg-[#1e1e1e] hover:bg-[#2a2a2a] p-3 rounded-full shadow-lg transition-all duration-300 ${
               showChat ? "left-104" : ""
             }`}
             style={{ boxShadow: "0 0 10px rgba(255,255,255,0.3)" }}
