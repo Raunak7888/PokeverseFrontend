@@ -9,6 +9,8 @@ import ChatComponent from "@/components/chatcomponent";
 import { MessagesSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
+import { m } from "framer-motion";
+import { p } from "framer-motion/client";
 
 type Player = {
   userId: string;
@@ -141,38 +143,60 @@ const Lobby = () => {
           console.log("Connected to WebSocket");
           client.subscribe(destination, (message) => {
             try {
+
+              if(message.body === "Game started") {
+                console.log("Game has started.");
+                router.push(`/quiz/multiplayer/question`);
+                return;
+              }
+              if(message.body === "Game ended") {
+                console.log("Game has ended.");
+                router.push(`/quiz/multiplayer/result`);
+                return;
+              }
+
               const parsedMessage = JSON.parse(message.body);
               console.log("Game message:", parsedMessage);
 
-              // --- MODIFICATION STARTS HERE ---
-              if (parsedMessage?.userId && parsedMessage?.name) {
-                // The new player data is directly in parsedMessage, not parsedMessage.player
-                const newPlayer: Player = {
-                    userId: parsedMessage.userId.toString(), // Access userId directly
-                    name: parsedMessage.name,               // Access name directly
-                    profilePicUrl: parsedMessage.profilePicUrl || "", // Add profilePicUrl if it exists in the message, or default
-                };
+              if (parsedMessage?.question && parsedMessage?.questionNumber){
+                console.log("Received question data:", parsedMessage.question);
+                localStorage.setItem(
+                  "multiplayerQuestion",
+                  JSON.stringify(parsedMessage));
                 
-                setPlayers((currentPlayers) => {
-                  const isDuplicate = currentPlayers.some(
-                    (player) => player.userId === newPlayer.userId
-                  );
-                  if (!isDuplicate) {
-                    const updatedPlayers = [...currentPlayers, newPlayer];
-                    localStorage.setItem(
-                      "players",
-                      JSON.stringify(updatedPlayers)
-                    );
-                    console.log("Added new player:", newPlayer.name);
-                    return updatedPlayers;
-                  }
-                  console.log("Player already exists:", newPlayer.name);
-                  return currentPlayers;
-                });
-              } else if (parsedMessage && parsedMessage.type === "GAME_STARTED") {
-                console.log("Game has started.");
-                router.push(`/quiz/multiplayer/question`);
               }
+                if (parsedMessage?.userId && parsedMessage?.name) {
+                  // --- MODIFICATION STARTS HERE ---
+                  // The new player data is directly in parsedMessage, not parsedMessage.player
+                  const newPlayer: Player = {
+                    userId: parsedMessage.userId.toString(), // Access userId directly
+                    name: parsedMessage.name, // Access name directly
+                    profilePicUrl: parsedMessage.profilePicUrl || "", // Add profilePicUrl if it exists in the message, or default
+                  };
+
+                  setPlayers((currentPlayers) => {
+                    const isDuplicate = currentPlayers.some(
+                      (player) => player.userId === newPlayer.userId
+                    );
+                    if (!isDuplicate) {
+                      const updatedPlayers = [...currentPlayers, newPlayer];
+                      localStorage.setItem(
+                        "players",
+                        JSON.stringify(updatedPlayers)
+                      );
+                      console.log("Added new player:", newPlayer.name);
+                      return updatedPlayers;
+                    }
+                    console.log("Player already exists:", newPlayer.name);
+                    return currentPlayers;
+                  });
+                } else if (
+                  parsedMessage &&
+                  parsedMessage.type === "GAME_STARTED"
+                ) {
+                  console.log("Game has started.");
+                  router.push(`/quiz/multiplayer/question`);
+                }
               // --- MODIFICATION ENDS HERE ---
             } catch (e) {
               console.error("Error parsing WebSocket message or handling it:", e);
