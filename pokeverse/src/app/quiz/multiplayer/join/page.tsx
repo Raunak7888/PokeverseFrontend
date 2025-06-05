@@ -13,8 +13,9 @@ const Join = () => {
   );
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const [userData, setUserData] = useState<{
-    userId: string;
+    userId: number;
     name: string;
+    profilePicUrl:string;
   } | null>(null);
   const router = useRouter();
 
@@ -22,7 +23,7 @@ const Join = () => {
     const user = Cookies.get("user");
     if (user) {
       const parsed = JSON.parse(user);
-      setUserData({ userId: parsed.id, name: parsed.name });
+      setUserData({ userId: parsed.id, name: parsed.name,profilePicUrl: parsed.profilePicUrl });
     }
   }, []);
 
@@ -83,8 +84,9 @@ const Join = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: parseInt(userData.userId),
+            userId: userData.userId,
             name: userData.name,
+            profilePicUrl: userData.profilePicUrl,
           }),
         }
       );
@@ -99,6 +101,11 @@ const Join = () => {
 
       // Save room and players in localStorage
       localStorage.setItem("room", JSON.stringify(jsonData.room));
+      jsonData.players.forEach((player: { userId: number; profilePicUrl: string; createdAt: string; id: number; name: string; score: number}) => {
+        if(player.userId === userData.userId){ // Changed from == to === for strict equality
+          player.profilePicUrl = userData.profilePicUrl; // Changed from == to = for assignment
+        }
+      });
       localStorage.setItem("players", JSON.stringify(jsonData.players));
 
       // Navigate to lobby
