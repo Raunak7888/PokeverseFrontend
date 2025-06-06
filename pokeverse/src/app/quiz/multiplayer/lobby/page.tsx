@@ -65,7 +65,7 @@ const Lobby = () => {
         const playersNeedingPics = players.filter(
           (p) =>
             !p.profilePicUrl?.trim() &&
-            !failedProfilePics.current.has(p.userId)
+            !failedProfilePics.current.has(`${p.userId}`)
         );
 
         if (playersNeedingPics.length > 0) {

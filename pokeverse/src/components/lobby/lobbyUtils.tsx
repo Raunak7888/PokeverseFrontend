@@ -31,6 +31,7 @@ export const normalizePlayers = (players: any[]) =>
     userId: p.userId.toString(),
     name: p.name,
     profilePicUrl: p.profilePicUrl || "",
+    score: p.score,
   }));
 
 export const enrichPlayers = async (
@@ -50,7 +51,7 @@ export const enrichPlayers = async (
         return { ...player, profilePicUrl: url };
       } catch (e) {
         console.warn(`Failed to fetch pic for ${player.userId}:`, e);
-        failedSet.add(player.userId); // ✅ Mark as failed
+        failedSet.add(`${player.userId}`); // ✅ Mark as failed
         return { ...player, profilePicUrl: "" };
       }
     })

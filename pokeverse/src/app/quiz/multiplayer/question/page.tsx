@@ -1,31 +1,41 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import QuestionComponent from "@/components/questionComponent";
 import MutiplayerResult from "@/components/mutiplayerResult";
 import Pokeball from "@/components/pokeball";
+import Cookies from "js-cookie";
 import Leaderboard from "@/components/leaderboard";
 import { ClockProvider } from "@/components/GameClockContext";
 import { useMultiplayerQuestionStore } from "@/store/multiplayerQuestionStore";
+import { WsAnswerValidationDTO } from "@/utils/types";
+import { useLobbyWebSocket } from "@/components/lobby/useLobbyWebSocket";
+import { Player } from "@/utils/types";
+import { Client } from "@stomp/stompjs";
+import { useSendAnswerValidation } from "@/lib/hooks/useSendAnswerValidation";
 
 const Question = () => {
   const { multiplayerQuestion } = useMultiplayerQuestionStore();
-
   const [stage, setStage] = useState<"intro" | "question" | "result">("intro");
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [startClock, setStartClock] = useState(false);
-  const [questionKey, setQuestionKey] = useState(0); // To re-trigger animation
-
-  // Duration based on question
+  const [questionKey, setQuestionKey] = useState(0);
+  const [answerResult, setAnswerResult] = useState<WsAnswerValidationDTO | null>(null);
+  const [playerId, setPlayerId] = useState<number>();
+  const [roomId, setRoomId] = useState<number>();
+  const [players, setPlayers] = useState<Player[]>([]);
   const duration = 30;
+
+  const { stompClient } = useLobbyWebSocket(setPlayers, String(roomId));
+  const sendAnswer = useSendAnswerValidation(stompClient);
 
   useEffect(() => {
     if (multiplayerQuestion) {
-      // Reset stage to intro, then move to question
       setStage("intro");
       setSelectedOption(null);
       setStartClock(false);
-      setQuestionKey((prev) => prev + 1); // Change key to trigger re-render
+      setQuestionKey((prev) => prev + 1);
     }
   }, [multiplayerQuestion]);
 
@@ -36,13 +46,68 @@ const Question = () => {
     }, 100);
   };
 
+  useEffect(() => {
+    try {
+      const user = Cookies.get("user");
+      const roomId = localStorage.getItem("roomId");
+      const rawPlayers = localStorage.getItem("players");
+
+      if (user) {
+        const { id: userId } = JSON.parse(user);
+
+        if (rawPlayers) {
+          const players = JSON.parse(rawPlayers);
+          const matchedPlayer = players.find((p: any) => p.userId === userId);
+          if (matchedPlayer?.userId) setPlayerId(matchedPlayer.id);
+        }
+      }
+
+      if (roomId) setRoomId(Number(roomId));
+    } catch (err) {
+      console.error("Error initializing player or room:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleValidationResult = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (
+          data.roomId === roomId &&
+          data.userId === playerId &&
+          data.questionId === multiplayerQuestion?.question.id &&
+          typeof data.correct === "boolean"
+        ) {
+          setAnswerResult(data);
+        }
+      } catch (err) {
+        console.error("Failed to process answer result:", err);
+      }
+    };
+
+    // Subscription handled in useLobbyWebSocket
+    // The store update in useLobbyWebSocket will trigger this state update
+    window.addEventListener("message", handleValidationResult);
+    return () => window.removeEventListener("message", handleValidationResult);
+  }, [roomId, playerId, multiplayerQuestion]);
+
   const handleSelect = (option: string) => {
     setSelectedOption(option);
-    setStage("result");
   };
 
   const handleSubmit = () => {
-    console.log("Submitted:", selectedOption);
+    if (!selectedOption || !multiplayerQuestion || !playerId || !roomId) return;
+
+    const payload = {
+      roomId,
+      userId: playerId,
+      questionId: multiplayerQuestion.question.id,
+      answer: selectedOption,
+    };
+
+    console.log(payload);
+
+    sendAnswer(payload);
     setStage("result");
   };
 
@@ -56,12 +121,7 @@ const Question = () => {
                 key={`intro-${questionKey}`}
                 initial={{ scale: 0, y: 100, opacity: 0 }}
                 animate={{ scale: 1, y: 0, opacity: 1, rotate: 360 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 50,
-                  damping: 15,
-                  duration: 3,
-                }}
+                transition={{ type: "spring", stiffness: 50, damping: 15, duration: 3 }}
                 className="absolute"
               >
                 <motion.div
@@ -87,12 +147,7 @@ const Question = () => {
                 initial={{ y: -500, opacity: 0, scale: 1.2 }}
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, y: -50, scale: 0.95 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 20,
-                  duration: 0.2,
-                }}
+                transition={{ type: "spring", stiffness: 300, damping: 20, duration: 0.2 }}
                 className="z-10"
               >
                 <QuestionComponent
@@ -124,7 +179,7 @@ const Question = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
               >
-                <MutiplayerResult duration={duration} />
+                <MutiplayerResult duration={duration} correct={answerResult?.correct} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -137,3 +192,5 @@ const Question = () => {
 };
 
 export default Question;
+
+

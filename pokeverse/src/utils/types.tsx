@@ -1,7 +1,9 @@
 export type Player = {
-  userId: string;
+  userId: number;
   name: string;
-  profilePicUrl?: string;
+  profilePicUrl: string;
+  score:number;
+  
 };
 
 export type Room = {
@@ -14,3 +16,12 @@ export type Room = {
   maxRound: number;
   currentRound: number;
 };
+
+
+export interface WsAnswerValidationDTO {
+  userId: number;
+  roomId: number;
+  questionId: number;
+  answer: string;
+  correct: boolean;
+}
