@@ -1,6 +1,7 @@
 "use client";
 
 import PokeButton from "@/components/PokemonButton";
+import { useRouter } from "next/navigation"; // ✅ Correct for App Router
 import React from "react";
 
 const players = [
@@ -26,6 +27,11 @@ const calculateAccuracy = (
 };
 
 const LeaderBoard = () => {
+  const router = useRouter();
+
+  const handleMenuButton=()=>{
+    router.push("/");
+  }
   return (
     <div className="bg-black  flex items-center justify-center px-4 py-10 font-[mogra]">
       <div className="w-full max-w-6xl bg-[#1f1f1f] text-white rounded-3xl shadow-2xl p-6">
@@ -96,7 +102,7 @@ const LeaderBoard = () => {
 
         {/* Button */}
         <div className="flex justify-center mt-8">
-          <PokeButton buttonName="Menu" />
+          <PokeButton buttonName="Menu" onClick={handleMenuButton}/>
         </div>
       </div>
     </div>
