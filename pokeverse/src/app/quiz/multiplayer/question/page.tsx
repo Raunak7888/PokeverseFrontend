@@ -12,8 +12,8 @@ import { useMultiplayerQuestionStore } from "@/store/multiplayerQuestionStore";
 import { WsAnswerValidationDTO } from "@/utils/types";
 import { useLobbyWebSocket } from "@/components/lobby/useLobbyWebSocket";
 import { Player } from "@/utils/types";
-import { Client } from "@stomp/stompjs";
 import { useSendAnswerValidation } from "@/lib/hooks/useSendAnswerValidation";
+import { useMultiplayerResultStore } from "@/store/mulitplayerResultStore";
 
 const Question = () => {
   const { multiplayerQuestion } = useMultiplayerQuestionStore();
@@ -69,27 +69,54 @@ const Question = () => {
   }, []);
 
   useEffect(() => {
-    const handleValidationResult = (event: MessageEvent) => {
+    const updateAnswerResult = () => {
       try {
-        const data = JSON.parse(event.data);
-        if (
-          data.roomId === roomId &&
-          data.userId === playerId &&
-          data.questionId === multiplayerQuestion?.question.id &&
-          typeof data.correct === "boolean"
-        ) {
-          setAnswerResult(data);
+        console.log("🔁 Running updateAnswerResult...");
+
+        if (!playerId) {
+          console.warn("⚠️ playerId is not set");
+          return;
+        }
+
+        if (!multiplayerQuestion) {
+          console.warn("⚠️ multiplayerQuestion is not available");
+          return;
+        }
+
+        const results = useMultiplayerResultStore.getState().results;
+
+        console.log("📦 Zustand multiplayerResults:", results);
+        console.log("👤 Looking for result with playerId:", playerId);
+        console.log("❓ Current questionId:", multiplayerQuestion.question.id);
+
+        const latestResult = [...results]
+          .reverse()
+          .find(
+            (r) =>
+              r.userId === playerId &&
+              r.questionId === multiplayerQuestion.question.id
+          );
+
+        if (latestResult) {
+          console.log("✅ Found matching result:", latestResult);
+          setAnswerResult(latestResult);
+        } else {
+          console.warn("❌ No matching result found for current player and question");
         }
       } catch (err) {
-        console.error("Failed to process answer result:", err);
+        console.error("🔥 Error in updateAnswerResult:", err);
       }
     };
 
-    // Subscription handled in useLobbyWebSocket
-    // The store update in useLobbyWebSocket will trigger this state update
-    window.addEventListener("message", handleValidationResult);
-    return () => window.removeEventListener("message", handleValidationResult);
-  }, [roomId, playerId, multiplayerQuestion]);
+    updateAnswerResult();
+  }, [
+    playerId,
+    multiplayerQuestion,
+    useMultiplayerResultStore((state) => state.results), // 👈 this triggers re-run on store change
+  ]);
+
+
+
 
   const handleSelect = (option: string) => {
     setSelectedOption(option);
