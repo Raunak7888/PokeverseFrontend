@@ -1,18 +1,17 @@
 "use client";
 
 import PokeButton from "@/components/PokemonButton";
-import { useRouter } from "next/navigation"; // ✅ Correct for App Router
-import React from "react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { useMultiplayerResultStore } from "@/store/mulitplayerResultStore";
 
-const players = [
-  { name: "Player 1", correct: 9, incorrect: 0, unanswered: 1 },
-  { name: "Player 2", correct: 7, incorrect: 1, unanswered: 2 },
-  { name: "Player 3", correct: 6, incorrect: 2, unanswered: 2 },
-  { name: "Player 4", correct: 6, incorrect: 2, unanswered: 2 },
-  { name: "Player 5", correct: 5, incorrect: 3, unanswered: 2 },
-  { name: "Player 6", correct: 4, incorrect: 4, unanswered: 2 },
-  { name: "Player 7", correct: 3, incorrect: 4, unanswered: 3 },
-];
+type PlayerStats = {
+  name: string;
+  userId: number;
+  correct: number;
+  incorrect: number;
+  unanswered: number;
+};
 
 const calculateAccuracy = (
   correct: number,
@@ -20,89 +19,158 @@ const calculateAccuracy = (
   unanswered: number
 ) => {
   const total = correct + incorrect + unanswered;
-  const numerator = correct * 3 + unanswered * 0 + incorrect * -1;
-  const denominator = total * 3;
-  const accuracy = (numerator / denominator) * 100;
-  return `${accuracy.toFixed(2)}%`;
+  if (total === 0) return "0.00%";
+  // Using a simplified score for accuracy calculation
+  const score = correct * 3 - incorrect;
+  const maxScore = total * 3;
+  if (maxScore === 0) return "0.00%";
+  const accuracy = (score / maxScore) * 100;
+  return `${Math.max(0, accuracy).toFixed(2)}%`; // Ensure accuracy isn't negative
 };
 
 const LeaderBoard = () => {
   const router = useRouter();
+  const results = useMultiplayerResultStore((state) => state.results);
 
-  const handleMenuButton=()=>{
+  const [playersStats, setPlayersStats] = useState<PlayerStats[]>([]);
+
+  // Removed maxRound state as it can be derived inside useEffect
+
+  useEffect(() => {
+    const rawRoom = localStorage.getItem("room");
+    const rawPlayers = localStorage.getItem("players");
+
+    if (!rawRoom || !rawPlayers) return;
+
+    try {
+      const room = JSON.parse(rawRoom);
+      const players = JSON.parse(rawPlayers);
+      const maxRound = room.maxRound || 0;
+
+      const statsMap = new Map<number, PlayerStats>();
+
+      players.forEach((p: any) => {
+        statsMap.set(p.id, {
+          name: p.name,
+          userId: p.id,
+          correct: 0,
+          incorrect: 0,
+          unanswered: 0,
+        });
+      });
+
+      statsMap.forEach((playerStat, userId) => {
+        const userResults = results.filter((r) => r.userId === userId);
+        const correct = userResults.filter((r) => r.correct).length;
+        const totalAnswered = userResults.length;
+        const incorrect = totalAnswered - correct;
+        const unanswered = maxRound - totalAnswered;
+
+        statsMap.set(userId, {
+          ...playerStat,
+          correct,
+          incorrect,
+          unanswered,
+        });
+      });
+
+      const sorted = Array.from(statsMap.values()).sort((a, b) => {
+        const aScore = a.correct * 3 - a.incorrect;
+        const bScore = b.correct * 3 - b.incorrect;
+        return bScore - aScore;
+      });
+
+      setPlayersStats(sorted);
+
+    } catch (error) {
+      console.error("Failed to parse data from localStorage", error);
+    }
+  }, [results]);
+
+  const handleMenuButton = () => {
     router.push("/");
-  }
+  };
+
   return (
-    <div className="bg-black  flex items-center justify-center px-4 py-10 font-[mogra]">
-      <div className="w-full max-w-6xl bg-[#1f1f1f] text-white rounded-3xl shadow-2xl p-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-          <h1 className="text-4xl font-bold tracking-wide font-[Piedra]">
+    <div className="bg-black flex items-center justify-center px-2 sm:px-4 py-8 font-[mogra] min-h-screen">
+      <div className="w-full max-w-4xl bg-[#1f1f1f] text-white rounded-3xl shadow-2xl p-4 md:p-6 flex flex-col">
+
+        {/* --- Header Section --- */}
+        {/* Stacks vertically on mobile, row on medium screens and up */}
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-wide font-[Piedra] text-center md:text-left">
             <span className="text-[#FF3B3B]">#</span>
-            <span className="underline decoration-[#FF3B3B]">01/08</span>
+            <span className="underline decoration-[#FF3B3B]">
+              {playersStats.length > 0 ? `01/${String(playersStats.length).padStart(2, "0")}` : 'N/A'}
+            </span>
           </h1>
+          <h2 className="text-3xl sm:text-4xl font-bold md:relative md:right-50 text-center order-first md:order-last md:text-right md:pr-14 ">
+            Leader Board
+          </h2>
+
         </div>
 
-        {/* Title */}
-        <div className="text-center text-3xl font-bold mb-4">Leader Board</div>
-
-        {/* Table Headers */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-2 font-semibold text-sm text-center mb-2">
-          {[
-            "Rank",
-            "Player",
-            "Correct",
-            "Incorrect",
-            "Unanswered",
-            "Accuracy",
-          ].map((title) => (
-            <div
-              key={title}
-              className="bg-[#333] p-2 rounded-md uppercase tracking-wider"
-            >
+        {/* --- Table Headers (Hidden on Mobile) --- */}
+        <div className="hidden md:grid grid-cols-6 gap-2 font-semibold text-sm text-center mb-3">
+          {["Rank", "Player", "Correct", "Incorrect", "Unanswered", "Accuracy"].map((title) => (
+            <div key={title} className="bg-[#333] p-2 rounded-md uppercase tracking-wider">
               {title}
             </div>
           ))}
         </div>
 
-        {/* Player Rows */}
-        {players.map((player, index) => {
-          const isTop3 = index < 3;
-          const rankColors = ["bg-[#FFD700]", "bg-[#C0C0C0]", "bg-[#CD7F32]"];
-          const rowColor = isTop3
-            ? `${rankColors[index]} text-black font-semibold`
-            : "bg-[#2a2a2a] text-white";
+        {/* --- Player List --- */}
+        <div className="max-h-[60vh] overflow-y-auto space-y-3">
+          {playersStats.map((player, index) => {
+            const isTop3 = index < 3;
+            const rankColors = ["bg-[#FFD700]", "bg-[#C0C0C0]", "bg-[#CD7F32]"];
+            const baseRowColor = isTop3 ? `${rankColors[index]} text-black font-semibold` : "bg-[#2a2a2a] text-white";
 
-          return (
-            <div
-              key={player.name}
-              className="grid grid-cols-2 md:grid-cols-6 gap-2 text-center text-sm mb-2"
-            >
-              <div className={`p-2 rounded-md ${rowColor}`}>#{index + 1}</div>
-              <div className={`p-2 rounded-md ${rowColor}`}>{player.name}</div>
-              <div className={`p-2 rounded-md ${rowColor}`}>
-                {player.correct}
-              </div>
-              <div className={`p-2 rounded-md ${rowColor}`}>
-                {player.incorrect}
-              </div>
-              <div className={`p-2 rounded-md ${rowColor}`}>
-                {player.unanswered}
-              </div>
-              <div className={`p-2 rounded-md ${rowColor}`}>
-                {calculateAccuracy(
-                  player.correct,
-                  player.incorrect,
-                  player.unanswered
-                )}
-              </div>
-            </div>
-          );
-        })}
+            return (
+              <div key={player.userId} className="select-none">
+                {/* --- Mobile Card Layout (Default) --- */}
+                <div className={`md:hidden p-4 rounded-lg ${baseRowColor}`}>
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-xl">#{index + 1}</span>
+                      <p className="font-semibold truncate" title={player.name}>{player.name}</p>
+                    </div>
+                    <span className="font-bold text-lg">
+                      {calculateAccuracy(player.correct, player.incorrect, player.unanswered)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-2 text-sm text-center">
+                    <div className="flex flex-col"><span className="opacity-75">Correct</span><span className="text-base font-semibold">{player.correct}</span></div>
+                    <div className="flex flex-col"><span className="opacity-75">Incorrect</span><span className="text-base font-semibold">{player.incorrect}</span></div>
+                    <div className="flex flex-col"><span className="opacity-75">Unanswered</span><span className="text-base font-semibold">{player.unanswered}</span></div>
+                  </div>
+                </div>
 
-        {/* Button */}
+                {/* --- Desktop Grid Layout (md and up) --- */}
+                <div className={`hidden md:grid grid-cols-6 gap-2 text-center text-sm`}>
+                  <div className={`p-2 rounded-md ${baseRowColor}`}>#{index + 1}</div>
+                  <div className={`p-2 rounded-md truncate ${baseRowColor}`} title={player.name}>{player.name}</div>
+                  <div className={`p-2 rounded-md ${baseRowColor}`}>{player.correct}</div>
+                  <div className={`p-2 rounded-md ${baseRowColor}`}>{player.incorrect}</div>
+                  <div className={`p-2 rounded-md ${baseRowColor}`}>{player.unanswered}</div>
+                  <div className={`p-2 rounded-md ${baseRowColor}`}>
+                    {calculateAccuracy(player.correct, player.incorrect, player.unanswered)}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex items-center justify-evenly flex-row gap-5">
+
+        <div className="flex justify-center mt-8 ">
+          <PokeButton buttonName="Review" onClick={handleMenuButton} />
+        </div>
+
+        {/* --- Menu Button --- */}
         <div className="flex justify-center mt-8">
-          <PokeButton buttonName="Menu" onClick={handleMenuButton}/>
+          <PokeButton buttonName="Menu" onClick={handleMenuButton} />
+        </div>
         </div>
       </div>
     </div>
