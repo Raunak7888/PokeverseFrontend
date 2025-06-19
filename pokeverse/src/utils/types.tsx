@@ -25,3 +25,19 @@ export interface WsAnswerValidationDTO {
   answer: string;
   correct: boolean;
 }
+
+export interface DetailedAnswer {
+  questionId: number;
+  question: string;
+  correctAnswer: string;
+  selectedOption: string;
+  timeTaken: number;
+  correct: boolean;
+}
+
+export interface ReviewData {
+  userId: number;
+  username: string;
+  totalPoints: number;
+  detailedAnswers: DetailedAnswer[];
+}

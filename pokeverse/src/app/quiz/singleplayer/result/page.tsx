@@ -2,20 +2,50 @@
 
 import PokeButton from "@/components/PokemonButton";
 import React, { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import PikachuLoader from "@/components/pikachuLoader";
+// import Analysis from "@/components/analysis"; // Assuming it's default exported
 
 const CompletedResult = () => {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [loader, setLoader] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+
   const score = searchParams.get("score") || "0";
   const total = searchParams.get("total") || "0";
+  const sessionId = searchParams.get("sessionId");
 
-  const handleHomeClick = () => {
-    setLoader(true);
-    router.push("/quiz");
+  const handleNavigation = async (type: "home" | "analysis") => {
+    if (type === "home") {
+      window.location.href = "/quiz";
+      return;
+    }
+
+    if (type === "analysis" && sessionId) {
+      setLoader(true);
+      try {
+        const response = await fetch(`http://localhost:8083/api/analysis/${sessionId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch analysis");
+
+        const analysisData = await response.json();
+        localStorage.setItem("analysis", JSON.stringify(analysisData));
+
+        setShowAnalysis(true);
+      } catch (error) {
+        console.error("Error fetching analysis:", error);
+      } finally {
+        setLoader(false);
+      }
+    }
   };
+
+  // if (showAnalysis) return <Analysis />;
 
   return (
     <div className="flex flex-col items-center justify-center bg-black text-white p-4 min-h-screen shadow-lg">
@@ -31,8 +61,8 @@ const CompletedResult = () => {
           You Scored {score} out of {total}
         </div>
         <div className="mt-10 md:mt-14 flex flex-col md:flex-row items-center justify-center gap-6">
-          <PokeButton buttonName="Analysis" onClick={handleHomeClick} />
-          <PokeButton buttonName="Home" onClick={handleHomeClick} />
+          <PokeButton buttonName="Analysis" onClick={() => handleNavigation("analysis")} />
+          <PokeButton buttonName="Home" onClick={() => handleNavigation("home")} />
         </div>
       </div>
     </div>
