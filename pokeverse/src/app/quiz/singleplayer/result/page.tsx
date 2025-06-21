@@ -2,26 +2,27 @@
 
 import PokeButton from "@/components/PokemonButton";
 import React, { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import PikachuLoader from "@/components/pikachuLoader";
 // import Analysis from "@/components/analysis"; // Assuming it's default exported
 
 const CompletedResult = () => {
   const searchParams = useSearchParams();
   const [loader, setLoader] = useState(false);
-  const [showAnalysis, setShowAnalysis] = useState(false);
 
   const score = searchParams.get("score") || "0";
   const total = searchParams.get("total") || "0";
   const sessionId = searchParams.get("sessionId");
-
+  const router = useRouter();
+  
   const handleNavigation = async (type: "home" | "analysis") => {
     if (type === "home") {
-      window.location.href = "/quiz";
+      router.push("/quiz")
       return;
     }
 
     if (type === "analysis" && sessionId) {
+
       setLoader(true);
       try {
         const response = await fetch(`http://localhost:8083/api/analysis/${sessionId}`, {
@@ -36,7 +37,8 @@ const CompletedResult = () => {
         const analysisData = await response.json();
         localStorage.setItem("analysis", JSON.stringify(analysisData));
 
-        setShowAnalysis(true);
+        router.push("/quiz/singleplayer/analysis")
+        
       } catch (error) {
         console.error("Error fetching analysis:", error);
       } finally {
